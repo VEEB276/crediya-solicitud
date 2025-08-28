@@ -2,10 +2,7 @@ package co.com.pragma.crediya.r2dbc;
 
 import co.com.pragma.crediya.model.estado.Estado;
 import co.com.pragma.crediya.model.estado.gateways.EstadoRepository;
-import co.com.pragma.crediya.model.prestamo.Prestamo;
-import co.com.pragma.crediya.model.prestamo.gateways.PrestamoRepository;
 import co.com.pragma.crediya.r2dbc.entities.EstadoEntity;
-import co.com.pragma.crediya.r2dbc.entities.PrestamoEntity;
 import co.com.pragma.crediya.r2dbc.helper.ReactiveAdapterOperations;
 import org.reactivecommons.utils.ObjectMapper;
 import org.slf4j.Logger;
@@ -27,9 +24,9 @@ public class EstadoReactiveRepositoryAdapter extends ReactiveAdapterOperations<
         super(repository, mapper, d -> mapper.map(d, Estado.class));
     }
 
-
     @Override
     public Mono<Estado> findBySigla(String sigla) {
+        log.info("Inicia consulta de la solicitud por sigla");
         return repository.findBySigla(sigla)
                 .doOnError(error -> log.error("Error buscando el estado por sigla {}: {}", sigla, error.getMessage(), error));
     }
