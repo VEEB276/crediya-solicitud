@@ -26,10 +26,12 @@ public class SolicitudEntity {
 
     private String email;
 
+    private Integer plazo;
+
     @Column("id_estado")
     private Long idEstado;
 
-    @Column("id_prestamo")
+    @Column("id_tipo_prestamo")
     private Long idPrestamo;
 
 }

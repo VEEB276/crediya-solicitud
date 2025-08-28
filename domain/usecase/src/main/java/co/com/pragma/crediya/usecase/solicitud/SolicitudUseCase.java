@@ -1,5 +1,8 @@
 package co.com.pragma.crediya.usecase.solicitud;
 
+import co.com.pragma.crediya.exception.BusinessException;
+import co.com.pragma.crediya.model.estado.gateways.EstadoRepository;
+import co.com.pragma.crediya.model.prestamo.gateways.PrestamoRepository;
 import co.com.pragma.crediya.model.solicitud.Solicitud;
 import co.com.pragma.crediya.model.solicitud.gateways.SolicitudRepository;
 import lombok.RequiredArgsConstructor;
@@ -9,10 +12,17 @@ import reactor.core.publisher.Mono;
 public class SolicitudUseCase {
 
     private final SolicitudRepository solicitudRepository;
+    private final EstadoRepository estadoRepository;
+    private final PrestamoRepository prestamoRepository;
 
     public Mono<Solicitud> saveApplication(Solicitud solicitud) {
-
-        return null;
+        return prestamoRepository.findById(solicitud.getIdPrestamo())
+                .switchIfEmpty(Mono.error(new BusinessException("El préstamo no existe")))
+                .then(estadoRepository.findBySigla("PEN"))
+                .flatMap(estado -> {
+                    solicitud.setIdEstado(estado.getId());
+                    return solicitudRepository.saveApplication(solicitud);
+                });
     }
 
 }
