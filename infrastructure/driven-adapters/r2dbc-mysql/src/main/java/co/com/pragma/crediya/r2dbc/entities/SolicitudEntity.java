@@ -17,7 +17,7 @@ public class SolicitudEntity {
 
     @Id
     @Column("id_solicitud")
-    private Long idSolicitud;
+    private Long id;
 
     private BigDecimal monto;
 
