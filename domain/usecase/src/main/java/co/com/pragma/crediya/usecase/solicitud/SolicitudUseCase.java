@@ -17,12 +17,13 @@ public class SolicitudUseCase {
 
     public Mono<Solicitud> saveApplication(Solicitud solicitud) {
         return prestamoRepository.findById(solicitud.getIdPrestamo())
-                .switchIfEmpty(Mono.error(new BusinessException("El préstamo no existe")))
-                .then(estadoRepository.findBySigla("PEN"))
-                .flatMap(estado -> {
-                    solicitud.setIdEstado(estado.getId());
-                    return solicitudRepository.saveApplication(solicitud);
-                });
+                .flatMap(prestamo -> estadoRepository.findBySigla("PEN")
+                        .flatMap(estado -> {
+                            solicitud.setIdEstado(estado.getId());
+                            return solicitudRepository.saveApplication(solicitud);
+                        })
+                )
+                .switchIfEmpty(Mono.error(new BusinessException("El préstamo no existe")));
     }
 
 }
