@@ -17,7 +17,7 @@ public class SolicitudEntity {
 
     @Id
     @Column("id_solicitud")
-    private Long idSolicitud;
+    private Long id;
 
     private BigDecimal monto;
 
@@ -26,10 +26,12 @@ public class SolicitudEntity {
 
     private String email;
 
+    private Integer plazo;
+
     @Column("id_estado")
     private Long idEstado;
 
-    @Column("id_prestamo")
+    @Column("id_tipo_prestamo")
     private Long idPrestamo;
 
 }

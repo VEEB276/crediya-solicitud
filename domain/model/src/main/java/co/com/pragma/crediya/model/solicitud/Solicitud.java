@@ -14,10 +14,11 @@ import java.math.BigDecimal;
 @Builder(toBuilder = true)
 public class Solicitud {
 
-    private Long idSolicitud;
+    private Long id;
     private BigDecimal monto;
     private String documentoIdentidad;
     private String email;
+    private Integer plazo;
     private Long idEstado;
     private Long idPrestamo;
 
