@@ -20,7 +20,7 @@ public class SolicitudUseCase {
     public Mono<Solicitud> saveApplication(Solicitud solicitud) {
         return userGateway.existUserByDocument(solicitud.getDocumentoIdentidad())
                 .flatMap(existe -> {
-                    if (!existe) {
+                    if (Boolean.FALSE.equals(existe)) {
                         return Mono.error(new BusinessException("No existe usuario con el documento " + solicitud.getDocumentoIdentidad()));
                     }
                     return prestamoRepository.findById(solicitud.getIdPrestamo())

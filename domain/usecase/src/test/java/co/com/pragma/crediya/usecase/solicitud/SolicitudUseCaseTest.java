@@ -1,6 +1,7 @@
 package co.com.pragma.crediya.usecase.solicitud;
 
 import co.com.pragma.crediya.exception.BusinessException;
+import co.com.pragma.crediya.gateways.UserGateway;
 import co.com.pragma.crediya.model.estado.Estado;
 import co.com.pragma.crediya.model.estado.gateways.EstadoRepository;
 import co.com.pragma.crediya.model.prestamo.Prestamo;
@@ -15,68 +16,112 @@ import org.mockito.MockitoAnnotations;
 import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 
 class SolicitudUseCaseTest {
 
     @Mock
-    private SolicitudRepository solicitudRepository;
+    private UserGateway userGateway;
+
+    @Mock
+    private PrestamoRepository prestamoRepository;
 
     @Mock
     private EstadoRepository estadoRepository;
 
     @Mock
-    private PrestamoRepository prestamoRepository;
+    private SolicitudRepository solicitudRepository;
 
     @InjectMocks
     private SolicitudUseCase solicitudUseCase;
 
-    private Solicitud solicitud;
-    private Estado estado;
-
     @BeforeEach
     void setUp() {
         MockitoAnnotations.openMocks(this);
+    }
 
-        solicitud = new Solicitud();
+    @Test
+    void saveApplicationUsuarioNoExiste() {
+        Solicitud solicitud = new Solicitud();
+        solicitud.setDocumentoIdentidad("123456");
+
+        when(userGateway.existUserByDocument("123456")).thenReturn(Mono.just(false));
+
+        StepVerifier.create(solicitudUseCase.saveApplication(solicitud))
+                .expectErrorMatches(error -> error instanceof BusinessException &&
+                        error.getMessage().equals("No existe usuario con el documento 123456"))
+                .verify();
+
+        verify(userGateway).existUserByDocument("123456");
+        verifyNoInteractions(prestamoRepository, estadoRepository, solicitudRepository);
+    }
+
+    @Test
+    void saveApplicationPrestamoNoExiste() {
+        Solicitud solicitud = new Solicitud();
+        solicitud.setDocumentoIdentidad("123456");
         solicitud.setIdPrestamo(1L);
 
-        estado = new Estado();
-        estado.setId(10L);
-        estado.setSigla("PEN");
-    }
-
-    @Test
-    void saveApplicationSuccess() {
-        when(prestamoRepository.findById(1L)).thenReturn(Mono.just(new Prestamo()));
-        when(estadoRepository.findBySigla("PEN")).thenReturn(Mono.just(estado));
-        when(solicitudRepository.saveApplication(any(Solicitud.class))).thenAnswer(invocation -> {
-            Solicitud s = invocation.getArgument(0);
-            return Mono.just(s);
-        });
-
-        Mono<Solicitud> result = solicitudUseCase.saveApplication(solicitud);
-
-        StepVerifier.create(result)
-                .assertNext(saved -> {
-                    assertEquals(10L, saved.getIdEstado());
-                })
-                .verifyComplete();
-    }
-
-    @Test
-    void saveApplicationPrestamoNotFound() {
+        when(userGateway.existUserByDocument("123456")).thenReturn(Mono.just(true));
         when(prestamoRepository.findById(1L)).thenReturn(Mono.empty());
 
-        Mono<Solicitud> result = solicitudUseCase.saveApplication(solicitud);
-
-        StepVerifier.create(result)
-                .expectErrorMatches(throwable ->
-                        throwable instanceof BusinessException &&
-                                throwable.getMessage().equals("El préstamo no existe")
-                )
+        StepVerifier.create(solicitudUseCase.saveApplication(solicitud))
+                .expectErrorMatches(error -> error instanceof BusinessException &&
+                        error.getMessage().equals("El préstamo no existe"))
                 .verify();
+
+        verify(userGateway).existUserByDocument("123456");
+        verify(prestamoRepository).findById(1L);
+        verifyNoInteractions(estadoRepository, solicitudRepository);
+    }
+
+    @Test
+    void saveApplicationExitoso() {
+        Solicitud solicitud = new Solicitud();
+        solicitud.setDocumentoIdentidad("123456");
+        solicitud.setIdPrestamo(1L);
+
+        Prestamo prestamo = new Prestamo();
+        Estado estado = new Estado();
+        estado.setId(99L);
+
+        Solicitud solicitudGuardada = new Solicitud();
+        solicitudGuardada.setDocumentoIdentidad("123456");
+        solicitudGuardada.setIdPrestamo(1L);
+        solicitudGuardada.setIdEstado(99L);
+
+        when(userGateway.existUserByDocument("123456")).thenReturn(Mono.just(true));
+        when(prestamoRepository.findById(1L)).thenReturn(Mono.just(prestamo));
+        when(estadoRepository.findBySigla("PEN")).thenReturn(Mono.just(estado));
+        when(solicitudRepository.saveApplication(solicitud)).thenReturn(Mono.just(solicitudGuardada));
+
+        StepVerifier.create(solicitudUseCase.saveApplication(solicitud))
+                .expectNextMatches(result ->
+                        result.getDocumentoIdentidad().equals("123456")
+                                && result.getIdPrestamo().equals(1L)
+                                && result.getIdEstado().equals(99L))
+                .verifyComplete();
+
+        verify(userGateway).existUserByDocument("123456");
+        verify(prestamoRepository).findById(1L);
+        verify(estadoRepository).findBySigla("PEN");
+        verify(solicitudRepository).saveApplication(solicitud);
+    }
+
+    @Test
+    void saveApplicationErrorEnRepositorio() {
+        Solicitud solicitud = new Solicitud();
+        solicitud.setDocumentoIdentidad("123456");
+
+        when(userGateway.existUserByDocument("123456"))
+                .thenReturn(Mono.error(new RuntimeException("Falla en BD")));
+
+        StepVerifier.create(solicitudUseCase.saveApplication(solicitud))
+                .expectErrorMatches(error -> error instanceof RuntimeException &&
+                        error.getMessage().equals("Falla en BD"))
+                .verify();
+
+        verify(userGateway).existUserByDocument("123456");
+        verifyNoInteractions(prestamoRepository, estadoRepository, solicitudRepository);
     }
 }
