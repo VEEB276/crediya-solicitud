@@ -2,7 +2,9 @@ package co.com.pragma.crediya.api;
 
 import co.com.pragma.crediya.api.dto.CreateApplicationDTO;
 import co.com.pragma.crediya.api.mapper.ApplicationDtoMapper;
+import co.com.pragma.crediya.exception.BusinessException;
 import co.com.pragma.crediya.exception.ValidationException;
+import co.com.pragma.crediya.gateways.UserGateway;
 import co.com.pragma.crediya.usecase.solicitud.SolicitudUseCase;
 import jakarta.validation.ConstraintViolation;
 import jakarta.validation.Validator;
@@ -10,6 +12,8 @@ import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.MediaType;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.ReactiveSecurityContextHolder;
 import org.springframework.stereotype.Component;
 import org.springframework.web.reactive.function.server.ServerRequest;
 import org.springframework.web.reactive.function.server.ServerResponse;
@@ -28,30 +32,49 @@ public class Handler {
 
     private final Validator validator;
 
+    private final UserGateway userGateway;
+
     private static final Logger log = LoggerFactory.getLogger(Handler.class);
 
     public Mono<ServerResponse> listenSaveApplication(ServerRequest serverRequest) {
         log.info("Inicio de la petición para guardar la solicitud");
 
-        return serverRequest.bodyToMono(CreateApplicationDTO.class)
-                .doOnNext(solicitud -> log.info("Solicitud recibida: {}", solicitud))
-                .flatMap(dto -> {
-                    Set<ConstraintViolation<CreateApplicationDTO>> violations =  validator.validate(dto);
-                    if (!violations.isEmpty()) {
-                        return Mono.error(new ValidationException(violations.stream()
-                                .map(ConstraintViolation::getMessage)
-                                .collect(Collectors.joining(", "))));
-                    }
-                    return Mono.just(dto);
-                })
-                .map(mapper::toModel)
-                .flatMap(solicitudUseCase::saveApplication)
-                .doOnNext(saveApplication -> log.info("Solicitud guardada con éxito: {}", saveApplication))
-                .flatMap(saveApplication -> ServerResponse.ok()
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .bodyValue(mapper.toResponse(saveApplication))
-                ).doOnError(e -> log.error("Error al guardar la solicitud", e))
-                .onErrorResume(ErrorHandler::handleError)
-                .doFinally(signal -> log.info("Fin de la petición para guardar la solicitud"));
+        return ReactiveSecurityContextHolder.getContext()
+                .flatMap(ctx -> {
+                    Authentication auth = ctx.getAuthentication();
+                    String email = auth.getName(); // 👈 viene del subject del token
+
+                    return serverRequest.bodyToMono(CreateApplicationDTO.class)
+                            .doOnNext(solicitud -> log.info("Solicitud recibida: {}", solicitud))
+                            .flatMap(dto -> {
+                                Set<ConstraintViolation<CreateApplicationDTO>> violations = validator.validate(dto);
+                                if (!violations.isEmpty()) {
+                                    return Mono.error(new ValidationException(
+                                            violations.stream()
+                                                    .map(ConstraintViolation::getMessage)
+                                                    .collect(Collectors.joining(", "))));
+                                }
+                                return Mono.just(dto);
+                            })
+                            .map(mapper::toModel)
+                            .flatMap(solicitud ->
+                                    userGateway.getDocumentoByCorreo(email)
+                                            .flatMap(documento -> {
+                                                if (!documento.equals(solicitud.getDocumentoIdentidad())) {
+                                                    return Mono.error(new BusinessException(
+                                                            "No puedes guardar una solicitud de otro usuario"));
+                                                }
+                                                return solicitudUseCase.saveApplication(solicitud);
+                                            })
+                            )
+                            .doOnNext(saveApplication -> log.info("Solicitud guardada con éxito: {}", saveApplication))
+                            .flatMap(saveApplication -> ServerResponse.ok()
+                                    .contentType(MediaType.APPLICATION_JSON)
+                                    .bodyValue(mapper.toResponse(saveApplication))
+                            )
+                            .doOnError(e -> log.error("Error al guardar la solicitud", e))
+                            .onErrorResume(ErrorHandler::handleError)
+                            .doFinally(signal -> log.info("Fin de la petición para guardar la solicitud"));
+                });
     }
 }
