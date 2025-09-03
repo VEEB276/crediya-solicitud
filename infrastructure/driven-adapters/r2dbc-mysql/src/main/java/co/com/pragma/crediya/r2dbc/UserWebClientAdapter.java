@@ -17,7 +17,7 @@ public class UserWebClientAdapter implements UserGateway {
     @Override
     public Mono<Boolean> existUserByDocument(String documento) {
         return webClient.get()
-                .uri("/api/v1/usuarios/{documento}", documento)
+                .uri("/api/v1/usuarios/documento/{documento}", documento)
                 .retrieve()
                 .bodyToMono(Void.class)
                 .then(Mono.fromCallable(() -> true))
