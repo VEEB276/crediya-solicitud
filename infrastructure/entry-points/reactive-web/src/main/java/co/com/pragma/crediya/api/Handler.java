@@ -42,7 +42,7 @@ public class Handler {
         return ReactiveSecurityContextHolder.getContext()
                 .flatMap(ctx -> {
                     Authentication auth = ctx.getAuthentication();
-                    String email = auth.getName(); // 👈 viene del subject del token
+                    String email = auth.getName();
 
                     return serverRequest.bodyToMono(CreateApplicationDTO.class)
                             .doOnNext(solicitud -> log.info("Solicitud recibida: {}", solicitud))
