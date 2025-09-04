@@ -1,6 +1,6 @@
-package co.com.pragma.crediya.r2dbc.security.jwt.maganer;
+package co.com.pragma.crediya.security.jwt.maganer;
 
-import co.com.pragma.crediya.r2dbc.security.jwt.provider.JwtProvider;
+import co.com.pragma.crediya.security.jwt.provider.JwtProvider;
 import org.springframework.security.authentication.ReactiveAuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;

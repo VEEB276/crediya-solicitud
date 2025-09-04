@@ -1,7 +1,7 @@
-package co.com.pragma.crediya.r2dbc.security.config;
+package co.com.pragma.crediya.security.config;
 
-import co.com.pragma.crediya.r2dbc.security.jwt.filter.JwtFilter;
-import co.com.pragma.crediya.r2dbc.security.repository.SecurityContextRepository;
+import co.com.pragma.crediya.security.jwt.filter.JwtFilter;
+import co.com.pragma.crediya.security.repository.SecurityContextRepository;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;

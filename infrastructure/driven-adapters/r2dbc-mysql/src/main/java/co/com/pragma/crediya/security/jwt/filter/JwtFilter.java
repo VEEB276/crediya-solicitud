@@ -1,9 +1,8 @@
-package co.com.pragma.crediya.r2dbc.security.jwt.filter;
+package co.com.pragma.crediya.security.jwt.filter;
 
 import co.com.pragma.crediya.exception.BusinessException;
-import co.com.pragma.crediya.r2dbc.security.jwt.provider.JwtProvider;
+import co.com.pragma.crediya.security.jwt.provider.JwtProvider;
 import org.springframework.http.HttpHeaders;
-import org.springframework.http.server.reactive.ServerHttpRequest;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.GrantedAuthority;
