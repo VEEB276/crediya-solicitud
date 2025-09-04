@@ -19,6 +19,9 @@ import org.springframework.web.reactive.function.server.ServerRequest;
 import org.springframework.web.reactive.function.server.ServerResponse;
 import reactor.core.publisher.Mono;
 
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -76,11 +79,22 @@ public class Handler {
     }
 
     public Mono<ServerResponse> listarPendientes(ServerRequest request) {
-        String filtro = request.queryParam("filtro").orElse("");
+
+        String filtrosParam = request.queryParam("filtros").orElse("");
+
+        List<String> filtros = Arrays.stream(
+                        filtrosParam.replaceAll("[\\[\\]\\s]", "")
+                                .split(",")
+                )
+                .filter(s -> !s.isBlank())
+                .map(String::toUpperCase)
+                .toList();
+
         int page = Integer.parseInt(request.queryParam("page").orElse("0"));
         int size = Integer.parseInt(request.queryParam("size").orElse("10"));
+        String sortDir = request.queryParam("sortDir").orElse("DESC");
 
-        return solicitudUseCase.execute(filtro, page, size)
+        return solicitudUseCase.execute(filtros, page, size, sortDir)
                 .flatMap(pagedResponse -> ServerResponse.ok()
                         .contentType(MediaType.APPLICATION_JSON)
                         .bodyValue(pagedResponse));

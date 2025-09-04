@@ -14,6 +14,8 @@ import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 import java.math.BigDecimal;
+import java.util.Collections;
+import java.util.List;
 
 @Repository
 public class MyReactiveRepositoryAdapter extends ReactiveAdapterOperations<
@@ -44,7 +46,8 @@ public class MyReactiveRepositoryAdapter extends ReactiveAdapterOperations<
     }
 
     @Override
-    public Flux<SolicitudInfo> findPendingSolicitudes(String filtro, int page, int size) {
+    public Flux<SolicitudInfo> findPendingSolicitudes(List<String> filtros, int page, int size, String sortDir) {
+
         String sql = """
         SELECT s.monto, s.plazo, s.email,
                p.nombre AS tipo_prestamo, p.tasa_interes,
@@ -58,15 +61,26 @@ public class MyReactiveRepositoryAdapter extends ReactiveAdapterOperations<
         FROM solicitud s
         JOIN tipo_prestamo p ON s.id_tipo_prestamo = p.id_tipo_prestamo
         JOIN estados e ON s.id_estado = e.id_estado
-        WHERE (:filtro IS NULL OR LOWER(e.sigla) LIKE LOWER(:filtro))
+        WHERE (:applyFilter = false OR e.sigla IN (:filtros))
+        ORDER BY s.id_solicitud %s
         LIMIT :limit OFFSET :offset
-    """;
+    """.formatted(sortDir);
+        log.info("SQL ejecutado: {}", sql);
 
-        return databaseClient.sql(sql)
+        boolean applyFilter = filtros != null && !filtros.isEmpty();
+
+        DatabaseClient.GenericExecuteSpec spec = databaseClient.sql(sql)
+                .bind("applyFilter", applyFilter)
                 .bind("limit", size)
-                .bind("offset", page * size)
-                .bind("filtro", filtro == null ? null : "%" + filtro + "%")
-                .map((row, metadata) -> new SolicitudInfo(
+                .bind("offset", page * size);
+
+        if (applyFilter) {
+            spec = spec.bind("filtros", filtros);
+        } else {
+            spec = spec.bind("filtros", Collections.singletonList(""));
+        }
+
+        return spec.map((row, metadata) -> new SolicitudInfo(
                         row.get("monto", BigDecimal.class),
                         row.get("plazo", Integer.class),
                         row.get("email", String.class),
@@ -78,7 +92,7 @@ public class MyReactiveRepositoryAdapter extends ReactiveAdapterOperations<
                         row.get("deuda_total_mensual_solicitudes_aprobadas", BigDecimal.class)
                 ))
                 .all()
-                .flatMap(solicitud -> webClient.getUserByCorreo(solicitud.email())
+                .flatMapSequential(solicitud -> webClient.getUserByCorreo(solicitud.email())
                         .map(usuario -> new SolicitudInfo(
                                 solicitud.monto(),
                                 solicitud.plazo(),
@@ -94,16 +108,26 @@ public class MyReactiveRepositoryAdapter extends ReactiveAdapterOperations<
     }
 
     @Override
-    public Mono<Long> countPendingSolicitudes(String filtro) {
+    public Mono<Long> countPendingSolicitudes(List<String> filtros) {
         String query = """
         SELECT COUNT(*) AS total
         FROM solicitud s
         JOIN estados e ON s.id_estado = e.id_estado
-        WHERE (:filtro IS NULL OR LOWER(e.sigla) LIKE LOWER(:filtro))
+        WHERE (:applyFilter = false OR e.sigla IN (:filtros))
     """;
 
-        return databaseClient.sql(query)
-                .bind("filtro", filtro == null ? null : "%" + filtro + "%")
+        boolean applyFilter = filtros != null && !filtros.isEmpty();
+
+        DatabaseClient.GenericExecuteSpec spec = databaseClient.sql(query)
+                .bind("applyFilter", applyFilter);
+
+        if (applyFilter) {
+            spec = spec.bind("filtros", filtros);
+        } else {
+            spec = spec.bind("filtros", Collections.singletonList(""));
+        }
+
+        return spec
                 .map((row, meta) -> row.get("total", Long.class))
                 .one();
     }

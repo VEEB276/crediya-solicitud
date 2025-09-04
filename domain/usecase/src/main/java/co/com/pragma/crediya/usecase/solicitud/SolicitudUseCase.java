@@ -11,6 +11,8 @@ import co.com.pragma.crediya.model.solicitud.gateways.SolicitudRepository;
 import lombok.RequiredArgsConstructor;
 import reactor.core.publisher.Mono;
 
+import java.util.List;
+
 @RequiredArgsConstructor
 public class SolicitudUseCase {
 
@@ -36,18 +38,21 @@ public class SolicitudUseCase {
                 });
     }
 
-    public Mono<PagedResponse<SolicitudInfo>> execute(String filtro, int page, int size) {
-        return solicitudRepository.countPendingSolicitudes(filtro)
+    public Mono<PagedResponse<SolicitudInfo>> execute(List<String> filtros, int page, int size, String sortDir) {
+        String finalSortDir = "ASC".equalsIgnoreCase(sortDir) ? "ASC" : "DESC";
+        return solicitudRepository.countPendingSolicitudes(filtros)
                 .flatMap(total -> {
                     int totalPages = (int) Math.ceil((double) total / size);
-                    return solicitudRepository.findPendingSolicitudes(filtro, page, size)
+                    return solicitudRepository.findPendingSolicitudes(filtros, page, size, finalSortDir)
                             .collectList()
                             .map(content -> new PagedResponse<>(
                                     content,
                                     page,
                                     size,
                                     total,
-                                    totalPages
+                                    totalPages,
+                                    "id_solicitud",
+                                    finalSortDir
                             ));
                 });
     }
