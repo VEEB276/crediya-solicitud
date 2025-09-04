@@ -6,5 +6,5 @@ public interface UserGateway {
 
     Mono<Boolean> existUserByDocument(String documento);
 
-    Mono<String> getDocumentoByCorreo(String correo);
+    Mono<User> getUserByCorreo(String correo);
 }

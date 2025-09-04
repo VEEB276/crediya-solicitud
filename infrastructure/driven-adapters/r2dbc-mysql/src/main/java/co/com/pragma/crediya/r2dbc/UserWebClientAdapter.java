@@ -1,5 +1,6 @@
 package co.com.pragma.crediya.r2dbc;
 
+import co.com.pragma.crediya.gateways.User;
 import co.com.pragma.crediya.gateways.UserGateway;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -29,14 +30,14 @@ public class UserWebClientAdapter implements UserGateway {
     }
 
     @Override
-    public Mono<String> getDocumentoByCorreo(String correo) {
+    public Mono<User> getUserByCorreo(String correo) {
         return webClient.get()
                 .uri("/api/v1/usuarios/correo/{correo}", correo)
                 .retrieve()
-                .bodyToMono(String.class)
-                .doOnNext(doc -> log.info("Documento obtenido por correo {}: {}", correo, doc))
+                .bodyToMono(User.class)
+                .doOnNext(doc -> log.info("Usuario obtenido por correo {}: {}", correo, doc))
                 .onErrorResume(e -> {
-                    log.error("Error al obtener documento por correo {}", correo, e);
+                    log.error("Error al obtener usuario por correo {}", correo, e);
                     return Mono.empty();
                 });
     }
