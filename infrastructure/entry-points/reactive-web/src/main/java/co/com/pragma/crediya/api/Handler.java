@@ -20,7 +20,6 @@ import org.springframework.web.reactive.function.server.ServerResponse;
 import reactor.core.publisher.Mono;
 
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -94,7 +93,7 @@ public class Handler {
         int size = Integer.parseInt(request.queryParam("size").orElse("10"));
         String sortDir = request.queryParam("sortDir").orElse("DESC");
 
-        return solicitudUseCase.execute(filtros, page, size, sortDir)
+        return solicitudUseCase.findApplicationPage(filtros, page, size, sortDir)
                 .flatMap(pagedResponse -> ServerResponse.ok()
                         .contentType(MediaType.APPLICATION_JSON)
                         .bodyValue(pagedResponse));

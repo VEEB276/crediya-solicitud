@@ -46,7 +46,8 @@ public class MyReactiveRepositoryAdapter extends ReactiveAdapterOperations<
     }
 
     @Override
-    public Flux<SolicitudInfo> findPendingSolicitudes(List<String> filtros, int page, int size, String sortDir) {
+    public Flux<SolicitudInfo> findApplication(List<String> filtros, int page, int size, String sortDir) {
+        log.info("Inicia consulta paginada de solicitudes");
 
         String sql = """
         SELECT s.monto, s.plazo, s.email,
@@ -65,7 +66,6 @@ public class MyReactiveRepositoryAdapter extends ReactiveAdapterOperations<
         ORDER BY s.id_solicitud %s
         LIMIT :limit OFFSET :offset
     """.formatted(sortDir);
-        log.info("SQL ejecutado: {}", sql);
 
         boolean applyFilter = filtros != null && !filtros.isEmpty();
 
@@ -108,7 +108,9 @@ public class MyReactiveRepositoryAdapter extends ReactiveAdapterOperations<
     }
 
     @Override
-    public Mono<Long> countPendingSolicitudes(List<String> filtros) {
+    public Mono<Long> countApplication(List<String> filtros) {
+        log.info("Inicia contador de solicitudes");
+
         String query = """
         SELECT COUNT(*) AS total
         FROM solicitud s

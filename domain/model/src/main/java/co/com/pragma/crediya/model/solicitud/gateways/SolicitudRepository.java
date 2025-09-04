@@ -11,8 +11,8 @@ public interface SolicitudRepository {
 
     Mono<Solicitud> saveApplication(Solicitud solicitud);
 
-    Flux<SolicitudInfo> findPendingSolicitudes(List<String> filtro, int page, int size, String sortDir);
+    Flux<SolicitudInfo> findApplication(List<String> filtro, int page, int size, String sortDir);
 
-    Mono<Long> countPendingSolicitudes(List<String> filtro);
+    Mono<Long> countApplication(List<String> filtro);
 
 }

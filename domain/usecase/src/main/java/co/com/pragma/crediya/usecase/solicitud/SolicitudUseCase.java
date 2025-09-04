@@ -38,12 +38,12 @@ public class SolicitudUseCase {
                 });
     }
 
-    public Mono<PagedResponse<SolicitudInfo>> execute(List<String> filtros, int page, int size, String sortDir) {
+    public Mono<PagedResponse<SolicitudInfo>> findApplicationPage(List<String> filtros, int page, int size, String sortDir) {
         String finalSortDir = "ASC".equalsIgnoreCase(sortDir) ? "ASC" : "DESC";
-        return solicitudRepository.countPendingSolicitudes(filtros)
+        return solicitudRepository.countApplication(filtros)
                 .flatMap(total -> {
                     int totalPages = (int) Math.ceil((double) total / size);
-                    return solicitudRepository.findPendingSolicitudes(filtros, page, size, finalSortDir)
+                    return solicitudRepository.findApplication(filtros, page, size, finalSortDir)
                             .collectList()
                             .map(content -> new PagedResponse<>(
                                     content,
