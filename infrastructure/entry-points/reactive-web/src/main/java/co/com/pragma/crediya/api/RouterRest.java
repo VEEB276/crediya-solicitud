@@ -49,7 +49,29 @@ public class RouterRest {
     }
 
     @Bean
+    @RouterOperation(
+            path = "/api/v1/solicitud",
+            produces = MediaType.APPLICATION_JSON_VALUE,
+            method = RequestMethod.POST,
+            beanClass = Handler.class,
+            beanMethod = "listarSolicitudes",
+            operation = @Operation(
+                    operationId = "consultarSolicitud",
+                    description = "Consultar solicitudes",
+                    requestBody = @RequestBody(
+                            required = true,
+                            content = @Content(
+                                    mediaType = MediaType.APPLICATION_JSON_VALUE,
+                                    schema = @Schema(implementation = CreateApplicationDTO.class),
+                                    examples = @ExampleObject(
+                                            value = "{\"monto\":1500000.50,\"documentoIdentidad\":\"123456789\",\"email\":\"valen@gmail.com\",\"plazo\":1,\"idPrestamo\":1}"))),
+                    responses = {
+                            @ApiResponse(responseCode = "200", description = "Solicitudes encontradas correctamente"),
+                            @ApiResponse(responseCode = "400", description = "Error de validación")
+                    }
+            )
+    )
     public RouterFunction<ServerResponse> pageApplication(Handler handler) {
-        return route(GET("/api/v1/solicitudes/pendientes"), handler::listarPendientes);
+        return route(GET("/api/v1/solicitud"), handler::listarSolicitudes);
     }
 }

@@ -77,7 +77,7 @@ public class Handler {
                 });
     }
 
-    public Mono<ServerResponse> listarPendientes(ServerRequest request) {
+    public Mono<ServerResponse> listarSolicitudes(ServerRequest request) {
 
         String filtrosParam = request.queryParam("filtros").orElse("");
 
