@@ -19,6 +19,8 @@ import org.springframework.web.reactive.function.server.ServerRequest;
 import org.springframework.web.reactive.function.server.ServerResponse;
 import reactor.core.publisher.Mono;
 
+import java.util.Arrays;
+import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -57,16 +59,13 @@ public class Handler {
                                 return Mono.just(dto);
                             })
                             .map(mapper::toModel)
-                            .flatMap(solicitud ->
-                                    userGateway.getDocumentoByCorreo(email)
-                                            .flatMap(documento -> {
-                                                if (!documento.equals(solicitud.getDocumentoIdentidad())) {
-                                                    return Mono.error(new BusinessException(
-                                                            "No puedes guardar una solicitud de otro usuario"));
-                                                }
-                                                return solicitudUseCase.saveApplication(solicitud);
-                                            })
-                            )
+                            .flatMap(solicitud -> {
+                                if (!email.equals(solicitud.getEmail())) {
+                                    return Mono.error(new BusinessException(
+                                            "No puedes guardar una solicitud de otro usuario"));
+                                }
+                                return solicitudUseCase.saveApplication(solicitud);
+                            })
                             .doOnNext(saveApplication -> log.info("Solicitud guardada con éxito: {}", saveApplication))
                             .flatMap(saveApplication -> ServerResponse.ok()
                                     .contentType(MediaType.APPLICATION_JSON)
@@ -76,5 +75,27 @@ public class Handler {
                             .onErrorResume(ErrorHandler::handleError)
                             .doFinally(signal -> log.info("Fin de la petición para guardar la solicitud"));
                 });
+    }
+
+    public Mono<ServerResponse> listarSolicitudes(ServerRequest request) {
+
+        String filtrosParam = request.queryParam("filtros").orElse("");
+
+        List<String> filtros = Arrays.stream(
+                        filtrosParam.replaceAll("[\\[\\]\\s]", "")
+                                .split(",")
+                )
+                .filter(s -> !s.isBlank())
+                .map(String::toUpperCase)
+                .toList();
+
+        int page = Integer.parseInt(request.queryParam("page").orElse("0"));
+        int size = Integer.parseInt(request.queryParam("size").orElse("10"));
+        String sortDir = request.queryParam("sortDir").orElse("DESC");
+
+        return solicitudUseCase.findApplicationPage(filtros, page, size, sortDir)
+                .flatMap(pagedResponse -> ServerResponse.ok()
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .bodyValue(pagedResponse));
     }
 }

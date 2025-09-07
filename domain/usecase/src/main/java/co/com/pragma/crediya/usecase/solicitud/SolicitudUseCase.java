@@ -4,10 +4,14 @@ import co.com.pragma.crediya.exception.BusinessException;
 import co.com.pragma.crediya.gateways.UserGateway;
 import co.com.pragma.crediya.model.estado.gateways.EstadoRepository;
 import co.com.pragma.crediya.model.prestamo.gateways.PrestamoRepository;
+import co.com.pragma.crediya.model.solicitud.PagedResponse;
 import co.com.pragma.crediya.model.solicitud.Solicitud;
+import co.com.pragma.crediya.model.solicitud.SolicitudInfo;
 import co.com.pragma.crediya.model.solicitud.gateways.SolicitudRepository;
 import lombok.RequiredArgsConstructor;
 import reactor.core.publisher.Mono;
+
+import java.util.List;
 
 @RequiredArgsConstructor
 public class SolicitudUseCase {
@@ -31,6 +35,25 @@ public class SolicitudUseCase {
                                     })
                             )
                             .switchIfEmpty(Mono.error(new BusinessException("El préstamo no existe")));
+                });
+    }
+
+    public Mono<PagedResponse<SolicitudInfo>> findApplicationPage(List<String> filtros, int page, int size, String sortDir) {
+        String finalSortDir = "ASC".equalsIgnoreCase(sortDir) ? "ASC" : "DESC";
+        return solicitudRepository.countApplication(filtros)
+                .flatMap(total -> {
+                    int totalPages = (int) Math.ceil((double) total / size);
+                    return solicitudRepository.findApplication(filtros, page, size, finalSortDir)
+                            .collectList()
+                            .map(content -> new PagedResponse<>(
+                                    content,
+                                    page,
+                                    size,
+                                    total,
+                                    totalPages,
+                                    "id_solicitud",
+                                    finalSortDir
+                            ));
                 });
     }
 

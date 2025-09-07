@@ -1,4 +1,4 @@
-package co.com.pragma.crediya.r2dbc.security.jwt.provider;
+package co.com.pragma.crediya.security.jwt.provider;
 
 import io.jsonwebtoken.*;
 import io.jsonwebtoken.io.Decoders;
