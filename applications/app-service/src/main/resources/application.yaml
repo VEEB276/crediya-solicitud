@@ -23,7 +23,7 @@ spring:
       db: "${adapters.r2dbc.database}"
 adapters:
   r2dbc:
-    host: "localhost"
+    host: "mysql_solicitudes"
     port: 3306
     database: "solicitud"
     username: "root"
