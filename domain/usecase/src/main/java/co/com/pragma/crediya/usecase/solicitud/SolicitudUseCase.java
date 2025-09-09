@@ -1,6 +1,7 @@
 package co.com.pragma.crediya.usecase.solicitud;
 
 import co.com.pragma.crediya.exception.BusinessException;
+import co.com.pragma.crediya.exception.ValidationException;
 import co.com.pragma.crediya.gateways.UserGateway;
 import co.com.pragma.crediya.model.estado.gateways.EstadoRepository;
 import co.com.pragma.crediya.model.prestamo.gateways.PrestamoRepository;
@@ -54,6 +55,15 @@ public class SolicitudUseCase {
                                     "id_solicitud",
                                     finalSortDir
                             ));
+                });
+    }
+
+    public Mono<Solicitud> updateStatus(Long idSolicitud, Long idEstado) {
+        return solicitudRepository.findById(idSolicitud)
+                .switchIfEmpty(Mono.error(new ValidationException("Solicitud no encontrada")))
+                .flatMap(solicitud -> {
+                    solicitud.setIdEstado(idEstado);
+                    return solicitudRepository.saveApplication(solicitud);
                 });
     }
 

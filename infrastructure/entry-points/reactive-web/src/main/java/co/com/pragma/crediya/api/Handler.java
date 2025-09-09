@@ -1,6 +1,7 @@
 package co.com.pragma.crediya.api;
 
 import co.com.pragma.crediya.api.dto.CreateApplicationDTO;
+import co.com.pragma.crediya.api.dto.UpdateApplicationRequest;
 import co.com.pragma.crediya.api.mapper.ApplicationDtoMapper;
 import co.com.pragma.crediya.exception.BusinessException;
 import co.com.pragma.crediya.exception.ValidationException;
@@ -98,4 +99,28 @@ public class Handler {
                         .contentType(MediaType.APPLICATION_JSON)
                         .bodyValue(pagedResponse));
     }
+
+    public Mono<ServerResponse> updateSolicitud(ServerRequest request) {
+        Long idSolicitud = Long.valueOf(request.pathVariable("idSolicitud"));
+        log.info("Inicio petición para actualizar solicitud con id: {}", idSolicitud);
+
+        Mono<UpdateApplicationRequest> bodyMono = request.bodyToMono(UpdateApplicationRequest.class)
+                .doOnNext(req -> log.debug("Body recibido: {}", req));
+
+        return bodyMono.flatMap(req -> {
+            log.info("Invocación de solicitudUseCase");
+
+            return solicitudUseCase.updateStatus(idSolicitud, req.idEstado())
+                    .doOnSuccess(solicitud ->
+                            log.info("Solicitud actualizada exitosamente: {}", solicitud))
+                    .doOnError(error ->
+                            log.error("Error actualizando solicitud con id={}", idSolicitud, error))
+                    .flatMap(solicitudActualizada ->
+                            ServerResponse.ok()
+                                    .contentType(MediaType.APPLICATION_JSON)
+                                    .bodyValue(solicitudActualizada)
+                    );
+        });
+    }
+
 }
