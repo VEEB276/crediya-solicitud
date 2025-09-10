@@ -5,6 +5,7 @@ import co.com.pragma.crediya.evento.UpdateApplicationEvent;
 import co.com.pragma.crediya.exception.BusinessException;
 import co.com.pragma.crediya.exception.ValidationException;
 import co.com.pragma.crediya.gateways.UserGateway;
+import co.com.pragma.crediya.model.estado.Estado;
 import co.com.pragma.crediya.model.estado.gateways.EstadoRepository;
 import co.com.pragma.crediya.model.prestamo.gateways.PrestamoRepository;
 import co.com.pragma.crediya.model.solicitud.PagedResponse;
@@ -14,10 +15,7 @@ import co.com.pragma.crediya.model.solicitud.gateways.SolicitudRepository;
 import lombok.RequiredArgsConstructor;
 import reactor.core.publisher.Mono;
 
-import java.util.HashMap;
-import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Map;
 
 @RequiredArgsConstructor
 public class SolicitudUseCase {
@@ -69,27 +67,38 @@ public class SolicitudUseCase {
                 .switchIfEmpty(Mono.error(new ValidationException("Solicitud no encontrada")))
                 .flatMap(solicitud -> {
                     solicitud.setIdEstado(idEstado);
+                    return solicitudRepository.saveApplication(solicitud);
+                })
+                // Se consulta el estado
+                .zipWhen(solicitudGuardada -> estadoRepository.findById(idEstado))
+                // Se consulta el préstamo
+                .flatMap(tuple -> {
+                    Solicitud solicitudGuardada = tuple.getT1();
+                    Estado estado = tuple.getT2();
 
-                    return solicitudRepository.saveApplication(solicitud)
-                            .flatMap(solicitudGuardada ->
-                                    estadoRepository.findById(idEstado)
-                                            .flatMap(estado -> {
-                                                // 🔹 Crear el evento de dominio (no JSON)
-                                                UpdateApplicationEvent event = new UpdateApplicationEvent(
-                                                        "SOL-" + solicitudGuardada.getId(),
-                                                        estado.getNombre(),
-                                                        solicitudGuardada.getEmail(),
-                                                        solicitudGuardada.getDocumentoIdentidad(),
-                                                        5000000L, // quemado
-                                                        "Libranza",                   // quemado
-                                                        "Su desembolso estará disponible en las próximas 24 horas."
-                                                );
+                    return prestamoRepository.findById(solicitudGuardada.getIdPrestamo())
+                            .flatMap(prestamo -> {
 
-                                                // 🔹 Publicar el evento (el adapter lo convertirá a JSON y lo manda a SQS)
-                                                return publisher.send(event)
-                                                        .thenReturn(solicitudGuardada);
-                                            })
-                            );
+                                // Mensaje según nombre del estado
+                                String mensaje = switch (estado.getNombre()) {
+                                    case "Aprobado" -> "Ahora eres una persona millonaria :D.";
+                                    case "Rechazado" -> "Lo siento mucho :(.";
+                                    default -> "El estado de su solicitud ha cambiado.";
+                                };
+
+                                UpdateApplicationEvent event = new UpdateApplicationEvent(
+                                        "SOL-" + solicitudGuardada.getId(),
+                                        estado.getNombre(),
+                                        solicitudGuardada.getEmail(),
+                                        solicitudGuardada.getDocumentoIdentidad(),
+                                        solicitudGuardada.getMonto().longValue(),
+                                        prestamo.getNombre(),
+                                        mensaje
+                                );
+
+                                return publisher.send(event)
+                                        .thenReturn(solicitudGuardada);
+                            });
                 });
     }
 

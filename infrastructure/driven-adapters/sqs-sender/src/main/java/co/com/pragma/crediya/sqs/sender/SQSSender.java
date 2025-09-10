@@ -2,6 +2,7 @@ package co.com.pragma.crediya.sqs.sender;
 
 import co.com.pragma.crediya.evento.ApplicationPublisher;
 import co.com.pragma.crediya.evento.UpdateApplicationEvent;
+import co.com.pragma.crediya.exception.ValidationException;
 import co.com.pragma.crediya.sqs.sender.config.SQSSenderProperties;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -29,21 +30,19 @@ public class SQSSender implements ApplicationPublisher {
         return Mono.fromCallable(() -> {
                     Map<String, Object> payload = new HashMap<>();
                     payload.put("requestId", event.requestId());
-                    payload.put("status", "APROBADA");
+                    payload.put("status", event.status());
                     payload.put("emailClient", event.emailClient());
                     payload.put("identityDocument", event.identityDocument());
-                    payload.put("loanAmount", 5000000);
-                    payload.put("loanType", "Libranza");
-                    payload.put("customMessage", "Su desembolso estará disponible en las próximas 24 horas.");
+                    payload.put("loanAmount", event.loanAmount());
+                    payload.put("loanType", event.loanType());
+                    payload.put("customMessage", event.customMessage());
 
-                    try {
-                        // Construimos el JSON y lo devolvemos como un String
-                        return objectMapper.writeValueAsString(payload);
-                    } catch (JsonProcessingException e) {
-                        // Manejamos la excepción de forma reactiva, propagándola como un error en el Mono
-                        log.error("Error al convertir el payload a JSON: {}", e.getMessage());
-                        throw new RuntimeException("Error al serializar el mensaje", e);
-                    }
+                    // Se construye el JSON y se devuelve como String
+                    return objectMapper.writeValueAsString(payload);
+                })
+                .onErrorMap(JsonProcessingException.class, e -> {
+                    log.error("Error al convertir el payload a JSON", e);
+                    return new ValidationException("Error al serializar el mensaje");
                 })
                 .flatMap(message -> Mono.fromFuture(client.sendMessage(buildRequest(message))))
                 .doOnNext(response -> log.debug("Message sent {}", response.messageId()))
