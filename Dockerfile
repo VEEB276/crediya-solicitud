@@ -6,7 +6,8 @@ COPY . .
 RUN gradle clean bootJar -x test -x validateStructure
 
 # Etapa 2: Imagen ligera para correr la app
-FROM openjdk:17-jdk-slim
+FROM eclipse-temurin:17-jdk-alpine
+
 WORKDIR /app
 # copiar el jar generado desde el módulo app-service
 COPY --from=builder /app/applications/app-service/build/libs/*.jar app.jar
