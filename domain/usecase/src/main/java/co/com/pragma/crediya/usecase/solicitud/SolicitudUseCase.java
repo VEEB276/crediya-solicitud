@@ -1,5 +1,7 @@
 package co.com.pragma.crediya.usecase.solicitud;
 
+import co.com.pragma.crediya.evento.ApplicationPublisher;
+import co.com.pragma.crediya.evento.UpdateApplicationEvent;
 import co.com.pragma.crediya.exception.BusinessException;
 import co.com.pragma.crediya.exception.ValidationException;
 import co.com.pragma.crediya.gateways.UserGateway;
@@ -12,7 +14,10 @@ import co.com.pragma.crediya.model.solicitud.gateways.SolicitudRepository;
 import lombok.RequiredArgsConstructor;
 import reactor.core.publisher.Mono;
 
+import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 
 @RequiredArgsConstructor
 public class SolicitudUseCase {
@@ -21,6 +26,7 @@ public class SolicitudUseCase {
     private final EstadoRepository estadoRepository;
     private final PrestamoRepository prestamoRepository;
     private final UserGateway userGateway;
+    private final ApplicationPublisher publisher;
 
     public Mono<Solicitud> saveApplication(Solicitud solicitud) {
         return userGateway.existUserByDocument(solicitud.getDocumentoIdentidad())
@@ -63,7 +69,27 @@ public class SolicitudUseCase {
                 .switchIfEmpty(Mono.error(new ValidationException("Solicitud no encontrada")))
                 .flatMap(solicitud -> {
                     solicitud.setIdEstado(idEstado);
-                    return solicitudRepository.saveApplication(solicitud);
+
+                    return solicitudRepository.saveApplication(solicitud)
+                            .flatMap(solicitudGuardada ->
+                                    estadoRepository.findById(idEstado)
+                                            .flatMap(estado -> {
+                                                // 🔹 Crear el evento de dominio (no JSON)
+                                                UpdateApplicationEvent event = new UpdateApplicationEvent(
+                                                        "SOL-" + solicitudGuardada.getId(),
+                                                        estado.getNombre(),
+                                                        solicitudGuardada.getEmail(),
+                                                        solicitudGuardada.getDocumentoIdentidad(),
+                                                        5000000L, // quemado
+                                                        "Libranza",                   // quemado
+                                                        "Su desembolso estará disponible en las próximas 24 horas."
+                                                );
+
+                                                // 🔹 Publicar el evento (el adapter lo convertirá a JSON y lo manda a SQS)
+                                                return publisher.send(event)
+                                                        .thenReturn(solicitudGuardada);
+                                            })
+                            );
                 });
     }
 
