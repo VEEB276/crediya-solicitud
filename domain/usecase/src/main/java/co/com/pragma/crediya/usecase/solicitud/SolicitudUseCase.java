@@ -77,28 +77,31 @@ public class SolicitudUseCase {
                     Estado estado = tuple.getT2();
 
                     return prestamoRepository.findById(solicitudGuardada.getIdPrestamo())
-                            .flatMap(prestamo -> {
+                            .flatMap(prestamo ->
+                                    // Se consulta el usuario por correo
+                                    userGateway.getUserByCorreo(solicitudGuardada.getEmail())
+                                            .flatMap(usuario -> {
+                                                // Mensaje según nombre del estado
+                                                String mensaje = switch (estado.getNombre()) {
+                                                    case "Aprobado" -> "Ahora eres una persona millonaria :D.";
+                                                    case "Rechazado" -> "Lo siento mucho :(.";
+                                                    default -> "El estado de su solicitud ha cambiado.";
+                                                };
 
-                                // Mensaje según nombre del estado
-                                String mensaje = switch (estado.getNombre()) {
-                                    case "Aprobado" -> "Ahora eres una persona millonaria :D.";
-                                    case "Rechazado" -> "Lo siento mucho :(.";
-                                    default -> "El estado de su solicitud ha cambiado.";
-                                };
+                                                UpdateApplicationEvent event = new UpdateApplicationEvent(
+                                                        "SOL-" + solicitudGuardada.getId(),
+                                                        estado.getNombre(),
+                                                        solicitudGuardada.getEmail(),
+                                                        usuario.documentoIdentidad(),
+                                                        solicitudGuardada.getMonto().longValue(),
+                                                        prestamo.getNombre(),
+                                                        mensaje
+                                                );
 
-                                UpdateApplicationEvent event = new UpdateApplicationEvent(
-                                        "SOL-" + solicitudGuardada.getId(),
-                                        estado.getNombre(),
-                                        solicitudGuardada.getEmail(),
-                                        solicitudGuardada.getDocumentoIdentidad(),
-                                        solicitudGuardada.getMonto().longValue(),
-                                        prestamo.getNombre(),
-                                        mensaje
-                                );
-
-                                return publisher.send(event)
-                                        .thenReturn(solicitudGuardada);
-                            });
+                                                return publisher.send(event)
+                                                        .thenReturn(solicitudGuardada);
+                                            })
+                            );
                 });
     }
 
