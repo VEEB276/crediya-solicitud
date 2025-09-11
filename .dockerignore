@@ -1,0 +1,22 @@
+# Gradle
+.gradle
+build/
+out/
+
+# IntelliJ IDEA
+.idea/
+*.iml
+
+# VS Code (por si acaso)
+.vscode/
+
+# Git
+.git
+.gitignore
+
+# Logs
+*.log
+
+# Mac / Windows basura
+.DS_Store
+Thumbs.db

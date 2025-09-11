@@ -14,7 +14,9 @@
             <option value="$PROJECT_DIR$/domain/model" />
             <option value="$PROJECT_DIR$/domain/usecase" />
             <option value="$PROJECT_DIR$/infrastructure/driven-adapters/r2dbc-mysql" />
+            <option value="$PROJECT_DIR$/infrastructure/driven-adapters/sqs-sender" />
             <option value="$PROJECT_DIR$/infrastructure/entry-points/reactive-web" />
+            <option value="$PROJECT_DIR$/infrastructure/helpers/metrics" />
             <option value="$PROJECT_DIR$/infrastructure/helpers/shared" />
           </set>
         </option>

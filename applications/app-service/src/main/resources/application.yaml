@@ -13,7 +13,6 @@ spring:
     include: null
   flyway:
     enabled: true
-    # Flyway usará su propio DataSource JDBC si se provee esta URL
     url: "jdbc:mysql://${adapters.r2dbc.host}:${adapters.r2dbc.port}/${adapters.r2dbc.database}"
     user: "${adapters.r2dbc.username}"
     password: "${adapters.r2dbc.password}"
@@ -23,7 +22,7 @@ spring:
       db: "${adapters.r2dbc.database}"
 adapters:
   r2dbc:
-    host: "localhost"
+    host: "mysql_solicitudes"
     port: 3306
     database: "solicitud"
     username: "root"
@@ -38,7 +37,11 @@ management:
       probes:
         enabled: true
 jwt:
-  secret: ${JWT_SECRET:4zQ6cW8jK3lVtN7hF9aX2bR5yD6pG1mT0uS8oQ4eZ7rH3vC9wJ5kL2xM8tB0qYf}
-  expiration: ${JWT_EXPIRATION:3600000}
+  secret: "${JWT_SECRET:4zQ6cW8jK3lVtN7hF9aX2bR5yD6pG1mT0uS8oQ4eZ7rH3vC9wJ5kL2xM8tB0qYf}"
+  expiration: "${JWT_EXPIRATION:3600000}"
 cors:
   allowed-origins: "http://localhost:4201,http://localhost:8081"
+adapter:
+  sqs:
+    region: "us-east-2"
+    queueUrl: "https://sqs.us-east-2.amazonaws.com/940075378570/notification-email-queue"

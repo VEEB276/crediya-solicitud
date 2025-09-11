@@ -6,4 +6,6 @@ import reactor.core.publisher.Mono;
 public interface EstadoRepository {
 
     Mono<Estado> findBySigla(String sigla);
+
+    Mono<Estado> findById(Long id);
 }

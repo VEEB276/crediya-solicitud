@@ -15,4 +15,6 @@ public interface SolicitudRepository {
 
     Mono<Long> countApplication(List<String> filtro);
 
+    Mono<Solicitud> findById(Long id);
+
 }
